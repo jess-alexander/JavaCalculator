@@ -4,10 +4,19 @@
  * and open the template in the editor.
  * 
  * these naming standards are driving me crazy. jTextField1 doesn't mean anything!
+ *
+ *  NEW ORDER OF OPERATIONS LOGIC
+ *  -- use ArrayList to store input values.
+ *  -- use ArrayList to store input calculations
+ *  -- use recursion? to execute order of operation ** only when equal is pressed ** 
+ *  -- keep logic to display answer of two input values for addition and substraction
+ *  -- logic for multiplication and division are separate
+
  */
 package calculator;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 
 /**
  *
@@ -16,8 +25,10 @@ import java.text.DecimalFormat;
 public class Calculator extends javax.swing.JFrame {
 
     private double num1, num2; //auto initialized at 0 
+    private ArrayList<Double> numAL = new ArrayList<>(); //using arrayList so user can input as many values as they want
     private boolean num2Set = false;
     private int calculateKey;
+    private ArrayList<Integer> calcAL = new ArrayList<>();
     private boolean resetCalculations;
     DecimalFormat df = new DecimalFormat("##.##");
    // private int calculateKey;
@@ -25,10 +36,7 @@ public class Calculator extends javax.swing.JFrame {
      * Creates new form calculator_frame
      */
     public Calculator() {
-        System.out.println(Double.MAX_VALUE);
-        System.out.println(Float.MAX_VALUE);
         initComponents();
-        
     }
     /**
      * The calculateKey integer will relate to a math operator.
@@ -38,6 +46,21 @@ public class Calculator extends javax.swing.JFrame {
      * 4 --> /
      */
     private void compute(){//, double input){
+        
+        //preload for TESTING
+        numAL.add(0.0);
+        numAL.add(1.0);
+        numAL.add(2.0);
+        
+        calcAL.add(1);
+        calcAL.add(3);
+        calcAL.add(0);
+        // logic in multiplyDivide will set false when proven not found
+        boolean indexFound = true; 
+        do{
+            indexFound = multiplyDivide(indexFound);
+        }while(indexFound);
+        
         // set boolean field for continue computing
         //   if operator is pressed after the equals button
         if(resetCalculations){
@@ -45,11 +68,12 @@ public class Calculator extends javax.swing.JFrame {
             num2Set = false; //set num2Set as false to avoid calculations
             resetCalculations = false; // flip boolean.
         }
-        
-        
+                
         //avoid computing when user hasn't input two numbers        
         if(num2Set){
             switch(calculateKey){
+                case 0: //equal
+                    
                 case 1: // + 
                     num2 = num1 + num2;
                     break;
@@ -74,6 +98,73 @@ public class Calculator extends javax.swing.JFrame {
         num1 = 0; //zero out to indicate clearing out textField is necessary
     }
     
+    private boolean multiplyDivide(boolean indexFound){
+    
+
+        //Multiply/Divide -->  Add/Subtract  * work left to right *
+        //numArray  = [0,1,2];                        
+        //calcArray = [1,3,0];                       
+        int mIndex = calcAL.indexOf(3); // 
+        int dIndex = calcAL.indexOf(4); // 
+        //in order to use values in calculations, must be converted to Array
+        Double[] numCalc = numAL.toArray(new Double[numAL.size()]); 
+
+
+        //LOGIC GOAL
+        //0  1  2      numAL
+        //  +  *  =    calcAL
+        // deleteCharAt(mIndex); deleteCharAt(mIndex+1); (calcAL should always?? end in 0 when entering this logic)
+        //0  2 <replace with result of calculation   
+        // +  =
+        System.out.println(calcAL.toString());
+        // it is possible for multiple occurances of index, loop through this logic until both indexes are -1
+                //One would have to remove the values already computed for that to work
+        if (mIndex != -1) {
+            //we know multiplication has been entered
+            if(dIndex != -1){
+                  //we know both multiplication and division has been entered
+                  if(mIndex < dIndex){ // which index occurs first?
+                    // we know multiplication was entered first, calculate it
+                    //  re-enter loop to search and computer again
+                  } else {
+                    //we know division was entered first, calculate it 
+                    //  re-enter loop to search and computer again
+                  }
+              } else {
+                //we know ONLY multipliation has been entered, calculate it
+                System.out.println(numAL.toString());
+                multiplication(numAL, mIndex);
+                System.out.println(numAL.toString());
+                //  re-enter loop to search and computer again
+              }
+        } else {
+            // we know multiplication has NOT been entered
+            if(dIndex != -1){
+              //  re-enter loop to search and computer again
+              // break loop
+            } else {
+              // neither multiplication nor division exist in calcAL
+              // break loop
+              indexFound = false;
+            }
+        }
+        return indexFound;
+    }
+
+    private void multiplication(ArrayList<Double> numAL, int mIndex){ //pass reference
+        Double[] numCalc = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
+        numCalc[mIndex] = numCalc[mIndex] * numCalc[mIndex+1];
+        calcAL.remove(new Integer(3));//removes first occurance in calc
+        numAL.remove(mIndex+1); //delete at index + 1
+        numAL.set(mIndex, numCalc[mIndex]); //replace value in numAl with result 
+        //return numCalc;  //not needed, ArrayList is mutable
+    }
+
+    private void division(){
+
+
+    }
+
     private void updateNum1(String input){
         // set boolean field for continue computing
         //   if number is pressed after the equals button, reset calculations
