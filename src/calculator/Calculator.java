@@ -36,14 +36,16 @@
  * PROBLEMS
  **  each time number is calculated, numAL is reduced to nothing. 
  *    -- need to preserve numbers input until either clear is pressed or a number is pressed after the enter button.
- *    -- refactor to do math by passing around local array rather than instance ArrayList??
- *    -- create local array for calcAL as well.
- **  clear up the need for num1 and num2. What purpose do they have in this new version?
+ *    -x refactor to do math by passing around local array rather than instance ArrayList??
+ *    -x create local array for calcAL as well.
+ **  clear up the need for num1. What purpose do they have in this new version?
  **  test the order of operation functions
  *    -- divide by zero exception caught?
  *    -- correct calculations?
  *    -- able to retreive answer from ArrayList?
- 
+ **  number added after operator (error)
+ **  separate *update array* logic from compute() method
+ *   -- saveInput method 
         
  */
 package calculator;
@@ -60,15 +62,11 @@ public class Calculator extends javax.swing.JFrame {
     private ArrayList<Double> numAL = new ArrayList<>(); //using arrayList so user can input as many values as they want
     private int index1, index2; // open scope needed
     private ArrayList<Integer> calcAL = new ArrayList<>();
-    DecimalFormat df = new DecimalFormat("##.##");
+    private DecimalFormat df = new DecimalFormat("##.##");
     
-    //old logic
-    private double num1, num2; //auto initialized at 0 
-    private boolean num2Set = false;
-    private int calculateKey;    
-    private boolean resetCalculations;
+    private boolean numberSaved; // flag to know when it's safe/necessary to clear jTextField1
+    private boolean resetCalculations; // flag to know when it's necessary to clear ArrayLists
     
-   // private int calculateKey;
     /**
      * Creates new form calculator_frame
      */
@@ -82,167 +80,192 @@ public class Calculator extends javax.swing.JFrame {
      * 3 --> *
      * 4 --> /
      */
-    private String compute() throws ArithmeticException{//, double input){
+    private void saveInput(String input){
+
+        numAL.add(Double.parseDouble(input));
+        numberSaved = false;
+
+    }
+    private String compute() {//, double input){
+        
         // set boolean field for continue computing
         //   if operator is pressed after the equals button
         if(resetCalculations){
-            num1 = num2; //save answer as num1
-            numAL.clear();    //
-            numAL.add(num2);
-            num2Set = false; //set num2Set as false to avoid calculations
+            numAL.clear();    
             resetCalculations = false; // flip boolean.
         }
         
-        // save number entered
-        numAL.add(num1); 
-        //avoid computing when user hasn't input two numbers        
-        if(numAL.size()>1){
-            boolean indexFound = true; 
+        ArrayList<Double> tempAL = numAL;        
+        
+        System.out.println("numAL: "+numAL);
+        System.out.println("calcAL: "+calcAL);
+        // avoid computing when user hasn't input two numbers        
+        // compute if calc ends in equal
+        // avoid computing when 
+        if(numAL.size()>1 ){
+            
             try{
-                // loop until there are no longer ** 3 or 4 ** values in calcAL    
-                do{
-                    // multiplyDivide() will search for indexes and return false to end loop
-                    indexFound = multiplyDivide(indexFound,3,4);
-                }while(indexFound);
+                recursiveCalc(3,4, tempAL);
             } catch (ArithmeticException e){
                 return "ERROR";
             }
-
-            // loop until there are no longer ** 1 or 2 ** values in calcAL
-            indexFound = true;
-            do{
-                // addSubtract() will search for indexes and return false to end loop
-                indexFound = multiplyDivide(indexFound,1,2);
-            }while(indexFound);
+                // loop inside until there are no longer ** 1 or 2 ** values in calcAL
+                recursiveCalc(1,2, tempAL);
         } 
         
+        numberSaved = false; //set to false to indicate clearing out textField is necessary
         // "print" answer to screen 
-        return num2+""; //return answer in string form.
+        System.out.println("tempAL size: "+tempAL.size());
+        System.out.println("tempAL.get(0): "+tempAL.get(0));
+        return df.format(tempAL.get(0)); //return answer in string form.
     }
  
-    private void SortnSaveIndex(int searchIndex){
-        // logic in multiplyDivide calls multiplication or division based off even or odd indexes
+    private void SortnSaveIndex(int searchIndex, ArrayList<Integer> tempCalc){
+        // logic in recursiveCalc calls multiplication or division based off even or odd indexes
         if(searchIndex % 2 == 1){ 
-            index1 = calcAL.indexOf(searchIndex); // multiply / addition
+            index1 = tempCalc.indexOf(searchIndex); // multiply / addition
         } else {
-            index2 = calcAL.indexOf(searchIndex); // subtraction / division   
+            index2 = tempCalc.indexOf(searchIndex); // subtraction / division   
         }   
     }
-    private boolean multiplyDivide(boolean indexFound, int searchIndex1, int searchIndex2) throws ArithmeticException{
+    private void recursiveCalc( int searchIndex1, int searchIndex2, ArrayList<Double> tempAL) throws ArithmeticException{
         // CREATE LOGIC TO THROW METHOD EXCEPTION 
         // input indexes cannot be equal and should be in groups of 1&2 OR 3&4
-        
-        SortnSaveIndex(searchIndex1);
-        SortnSaveIndex(searchIndex2);
-        
-        // it is possible for multiple occurances of index, loop through this logic until both indexes are -1
-                //One would have to remove the values already computed for that to work
-        if (index1 != -1) {
-            //we know odd has been entered
-            if(index2 != -1){
-                  //we know BOTH odd and even has been entered
-                  if(index1 < index2){ // which index occurs first?
-                    // we know odd was entered first, calculate it, then re-enter outside loop 
-                    addOrMultiply();
+                
+        // POSSIBLE LOGIC PROBLEM
+        // tempCalc can be reset with each call to rescursiveCalc 
+        ArrayList<Integer> tempCalc = calcAL;
+        SortnSaveIndex(searchIndex1, tempCalc);
+        SortnSaveIndex(searchIndex2, tempCalc);
+        boolean indexFound = true;
+        do{
+            // it is possible for multiple occurances of index, loop through this logic until both indexes are -1
+            if (index1 != -1) {
+                //we know odd has been entered
+                if(index2 != -1){
+                      //we know BOTH odd and even has been entered
+                      if(index1 < index2){ // which index occurs first?
+                        // we know odd was entered first, calculate it, then re-enter outside loop 
+                        addOrMultiply(tempAL, tempCalc, searchIndex1);
+                      } else {
+                        //we know even was entered first, calculate it, then re-enter outside loop 
+                        subtractOrDivide(tempAL, tempCalc, searchIndex2);
+                      }
                   } else {
-                    //we know even was entered first, calculate it, then re-enter outside loop 
-                    subtractOrDivide();
+                    //we know odd has been entered, calculate it, then re-enter outside loop 
+                    addOrMultiply(tempAL, tempCalc, searchIndex1);
                   }
-              } else {
-                //we know odd has been entered, calculate it, then re-enter outside loop 
-                addOrMultiply();
-              }
-        } else {
-            // we know odd has NOT been entered
-            if(index2 != -1){
-              //we know even was entered, calculate it, then re-enter outside loop 
-              subtractOrDivide();
             } else {
-              // neither index input exist in calcAL, flag to end loop
-              indexFound = false;
+                // we know odd has NOT been entered
+                if(index2 != -1){
+                  //we know even was entered, calculate it, then re-enter outside loop 
+                  subtractOrDivide(tempAL, tempCalc, searchIndex2);
+                } else {
+                  // neither index input exist in calcAL, flag to end loop
+                  indexFound = false;
+                }
+            }
+            // search for additional operators
+            SortnSaveIndex(searchIndex1, tempCalc);
+            SortnSaveIndex(searchIndex2, tempCalc);
+        } while(indexFound);
+        
+    }
+    
+    private void addOrMultiply(ArrayList<Double> tempAL, ArrayList<Integer> tempCalc, int searchIndex1){
+        System.out.println("addOrMultiply");
+        System.out.println("before: "+tempAL.toString());
+        //ArrayList<Double> tempAL = new ArrayList<>();
+        if(searchIndex1 == 3){
+            // change value through reference, which changes original value
+             multiplication(index1, tempAL, tempCalc);
+        } else {
+            if(searchIndex1 == 1){
+                addition(index1, tempAL, tempCalc);
+            }
+        }                
+        System.out.println("after: "+tempAL.toString());
+        
+        //return tempAL;
+    }
+    private void subtractOrDivide(ArrayList<Double> tempAL, ArrayList<Integer> tempCalc, int searchIndex2){
+        System.out.println("subtractOrDivide");
+        System.out.println("before: "+tempAL.toString());
+
+        if(searchIndex2 == 4){
+            division(index2, tempAL, tempCalc);
+        } else {
+            if(searchIndex2 == 2){
+                subtraction(index2, tempAL, tempCalc);
             }
         }
-        return indexFound;
+        System.out.println("after: "+tempAL.toString());   
+     //   return tempAL;
     }
-    
-    private void addOrMultiply(){
-        System.out.println(numAL.toString());
-        if(index1 == 3){
-            multiplication(numAL, index1);
-        } else {
-            if(index1 == 1){
-                addition(numAL, index1);
-            }
-        }                
-        System.out.println(numAL.toString());
-    }
-    
-    private void subtractOrDivide(){
-        System.out.println(numAL.toString());
-        if(index1 == 4){
-            division(numAL, index2);
-        } else {
-            if(index1 == 2){
-                subtraction(numAL, index2);
-            }
-        }                
-        System.out.println(numAL.toString());        
-    }
-    private void division(ArrayList<Double> numAL, int indx) throws ArithmeticException{ //pass reference
+    private void division(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc) throws ArithmeticException{ //pass reference
+
          //in order to use values in calculations, ArrayList must be converted to Array
-        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
-        
+        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
         numArr[indx] = numArr[indx] / numArr[indx+1];
-        calcAL.remove(new Integer(4));//removes first occurance in calc
-        numAL.remove(indx+1); //delete at index + 1
-        numAL.set(indx, numArr[indx]); //replace value in numAl with result 
-
-    }
-    private void multiplication(ArrayList<Double> numAL, int indx){ //pass reference
-        //in order to use values in calculations, ArrayList must be converted to Array
-        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
         
+        tempCalc.remove(new Integer(4));//removes first occurance in calc
+        tempAL.remove(indx+1); //delete at index + 1
+        tempAL.set(indx, numArr[indx]); //replace value in numAl with result 
+        
+    }
+    private void multiplication(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
+
+        //in order to use values in calculations, ArrayList must be converted to Array
+        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
         numArr[indx] = numArr[indx] * numArr[indx+1];
-        calcAL.remove(new Integer(3));//removes first occurance in calc
-        numAL.remove(indx+1); //delete at index + 1
-        numAL.set(indx, numArr[indx]); //replace value in numAl with result         
+        
+        tempCalc.remove(new Integer(3));//removes first occurance in calc
+        tempAL.remove(indx+1); //delete at index + 1
+        tempAL.set(indx, numArr[indx]); //replace value in numAl with result         
+
     }
-    private void subtraction(ArrayList<Double> numAL, int indx){ //pass reference
+    private void subtraction(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
+
         //in order to use values in calculations, ArrayList must be converted to Array
-        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
+        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
         numArr[indx] = numArr[indx] - numArr[indx+1];
-        calcAL.remove(new Integer(3));//removes first occurance in calc
-        numAL.remove(indx+1); //delete at index + 1
-        numAL.set(indx, numArr[indx]); //replace value in numAl with result
+        
+        tempCalc.remove(new Integer(2));//removes first occurance in calc
+        tempAL.remove(indx+1); //delete at index + 1
+        tempAL.set(indx, numArr[indx]); //replace value in numAl with result
+        
     }
-    private void addition(ArrayList<Double> numAL, int indx){ //pass reference
+    private void addition(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
+        
         //in order to use values in calculations, ArrayList must be converted to Array
-        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
+        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
         numArr[indx] = numArr[indx] + numArr[indx+1];
-        calcAL.remove(new Integer(3));//removes first occurance in calc
-        numAL.remove(indx+1); //delete at index + 1
-        numAL.set(indx, numArr[indx]); //replace value in numAl with result 
+        
+        tempCalc.remove(new Integer(1));//removes first occurance in calc
+        tempAL.remove(indx+1); //delete at index + 1
+        tempAL.set(indx, numArr[indx]); //replace value in numAl with result 
+        
     }
-
-         
-////////////////////////////////////////////////////////////////////////////////
-// OLD LOGIC  --- OLD LOGIC -- OLD LOGIC -- OLD LOGIC  --- OLD LOGIC -- OLD LOGIC -- 
-////////////////////////////////////////////////////////////////////////////////
-  
-
-    private void updateNum1(String input){
+ 
+/**
+ * concatInput removes leading zeros and concats values of buttons pressed into user display
+ * @param String input, button clicked from user
+ */
+    private void concatInput(String input){
         // set boolean field for continue computing
         //   if number is pressed after the equals button, reset calculations
         if(resetCalculations){ //reset board?
-            num2 = 0;
+            numAL.clear();
+            calcAL.clear();
             jTextField1.setText(input);
             resetCalculations = false;
         }else{
-            if(num1 == 0){  
+            if(!numberSaved){  
                 // replace textField with new input after calculations
                 jTextField1.setText(input);
+                numberSaved = true; // value has been replaced, set flag to true
             } else{ 
-                // num1 has been set with a new number, conact rather than replace
+                // numberSaved is true,  conact rather than replace
                 // Don't allow leading zeros
                 if(jTextField1.getText().equals("0")){
                     jTextField1.setText(input);
@@ -250,10 +273,7 @@ public class Calculator extends javax.swing.JFrame {
                     jTextField1.setText(jTextField1.getText()+input);
                 }
             }        
-        }
-        
-        // set num1 in preparation for next calculation
-        num1 = Double.parseDouble(jTextField1.getText());
+        }        
     }
 
     /**
@@ -544,50 +564,42 @@ public class Calculator extends javax.swing.JFrame {
     private void button5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button5ActionPerformed
         //DIVISION
         calcAL.add(4);
+        saveInput(jTextField1.getText());
         
-        
-        calculateKey = 4;
-        compute();
-        jTextField1.setText(df.format(num2)); // format out the decimals
+//        jTextField1.setText(compute()); // format out the decimals
     }//GEN-LAST:event_button5ActionPerformed
 
     private void button9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button9ActionPerformed
         //MULTIPLICATION 
         calcAL.add(3);
+        saveInput(jTextField1.getText());
         
-        calculateKey = 3;
-        
-        jTextField1.setText(df.format(compute())); //autobox to string format
+//        jTextField1.setText(compute()); //autobox to string format
     }//GEN-LAST:event_button9ActionPerformed
 
     private void button13ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button13ActionPerformed
         //SUBTRACTION
         calcAL.add(2);
-        
-        
-        calculateKey = 2;
-        
-        jTextField1.setText(df.format(compute())); //autobox to string format
+        saveInput(jTextField1.getText());
+       
+//        jTextField1.setText(compute()); //autobox to string format
     }//GEN-LAST:event_button13ActionPerformed
 
     private void button17ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button17ActionPerformed
         //ADDITION
         calcAL.add(1);
+        saveInput(jTextField1.getText());
         
-        
-        calculateKey = 1;
-
-        jTextField1.setText(df.format(compute())); //autobox to string format
+//        jTextField1.setText(compute()); //autobox to string format
     }//GEN-LAST:event_button17ActionPerformed
 
     private void button21ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button21ActionPerformed
         // EQUAL BUTTON
         calcAL.add(0);
-        
-        
-        jTextField1.setText(df.format(compute())); //autobox to string format
+        saveInput(jTextField1.getText());        
+        jTextField1.setText(compute()); //autobox to string format
+
         resetCalculations = true;
-        num2Set = false;
         // set boolean field for continue computing
         //   if number is pressed next, reset calculations
         //   if operator is pressed next, continue computing
@@ -596,53 +608,53 @@ public class Calculator extends javax.swing.JFrame {
 
     private void button14ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button14ActionPerformed
         // TODO add your handling code here:
-        updateNum1("1");
+        concatInput("1");
     }//GEN-LAST:event_button14ActionPerformed
 
     private void button16ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button16ActionPerformed
         // TODO add your handling code here:
-        updateNum1("2");
+        concatInput("2");
     }//GEN-LAST:event_button16ActionPerformed
 
     private void button15ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button15ActionPerformed
         // TODO add your handling code here:
-        updateNum1("3");
+        concatInput("3");
     }//GEN-LAST:event_button15ActionPerformed
 
     private void button10ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button10ActionPerformed
         // TODO add your handling code here:
-        updateNum1("4");
+        concatInput("4");
     }//GEN-LAST:event_button10ActionPerformed
 
     private void button12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button12ActionPerformed
         // TODO add your handling code here:
-        updateNum1("5");
+        concatInput("5");
     }//GEN-LAST:event_button12ActionPerformed
 
     private void button11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button11ActionPerformed
         // TODO add your handling code here:
-        updateNum1("6");
+        concatInput("6");
     }//GEN-LAST:event_button11ActionPerformed
 
     private void button6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button6ActionPerformed
         // TODO add your handling code here:        
-        updateNum1("7");
+        concatInput("7");
     }//GEN-LAST:event_button6ActionPerformed
 
     private void button8ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button8ActionPerformed
         // TODO add your handling code here:
-        updateNum1("8");
+        concatInput("8");
     }//GEN-LAST:event_button8ActionPerformed
 
     private void button7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button7ActionPerformed
         // TODO add your handling code here:
-        updateNum1("9");
+        concatInput("9");
     }//GEN-LAST:event_button7ActionPerformed
 
     private void button18ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button18ActionPerformed
         //add a zero to the string, only if the String is not equal to 0
         if(!jTextField1.getText().equals("0")) {
-            updateNum1("0");    
+            concatInput("0");    
         }
     }//GEN-LAST:event_button18ActionPerformed
 
@@ -655,16 +667,14 @@ public class Calculator extends javax.swing.JFrame {
         // TODO add your handling code here:
         // clear last entry 
         jTextField1.setText("");
-        num1 = 0;
+        numberSaved = false;
     }//GEN-LAST:event_button1ActionPerformed
 
     private void button3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button3ActionPerformed
         // TODO add your handling code here:
         jTextField1.setText("");
-        num1 = 0;
-        num2 = 0;
+        numberSaved = false;
         resetCalculations = false;
-        num2Set = false;
     }//GEN-LAST:event_button3ActionPerformed
 
     /**
