@@ -13,26 +13,7 @@
  *  -- logic for multiplication and division are separate
         
         //Multiply/Divide -->  Add/Subtract  * work recursively from left to right *
-        
-        //LOGIC GOAL
-        // 0  1  2  3  4     numAL
-        //     \ /
-        //   +  *  -  /  =    calcAL
-        // deleteCharAt(index1); deleteCharAt(index1+1); (calcAL should always?? end in 0 when entering this logic)
-        // 0  2  3  4     numAL
-        //        \ /
-        //   +  -  /  =    calcAL
-        // deleteCharAt(index2); deleteCharAt(index2+1); (calcAL should always?? end in 0 when entering this logic)
-        // 0  2  .75     numAL
-        //  \ /
-        //   +  -   =    calcAL
-        // deleteCharAt(index1); deleteCharAt(index1+1); (calcAL should always?? end in 0 when entering this logic)
-        // 2  .75     numAL
-        //  \ /
-        //   -   =    calcAL
-        // deleteCharAt(index2); deleteCharAt(index2+1); (calcAL should always?? end in 0 when entering this logic)
-        //  1.25
-
+       
  * PROBLEMS
  **  each time number is calculated, numAL is reduced to nothing. 
  *    -- need to preserve numbers input until either clear is pressed or a number is pressed after the enter button.
@@ -59,13 +40,13 @@ import java.util.ArrayList;
  */
 public class Calculator extends javax.swing.JFrame {
 
-    private ArrayList<Double> numAL = new ArrayList<>(); //using arrayList so user can input as many values as they want
-    private int index1, index2; // open scope needed
     private ArrayList<Integer> calcAL = new ArrayList<>();
-    private DecimalFormat df = new DecimalFormat("##.##");
-    
+    private ArrayList<Double> numAL = new ArrayList<>(); //using arrayList so user can input as many values as they want
+    private int index1, index2; // open scope needed because you can't return two values at once. 
+        // after all testing is finished, re-configure code to make these indexes local. They are only used in two methods    
     private boolean numberSaved; // flag to know when it's safe/necessary to clear jTextField1
     private boolean resetCalculations; // flag to know when it's necessary to clear ArrayLists
+    private DecimalFormat df = new DecimalFormat("##.##");
     
     /**
      * Creates new form calculator_frame
