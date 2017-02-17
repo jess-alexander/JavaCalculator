@@ -11,7 +11,40 @@
  *  -- use recursion? to execute order of operation ** only when equal is pressed ** 
  *  -- keep logic to display answer of two input values for addition and substraction
  *  -- logic for multiplication and division are separate
+        
+        //Multiply/Divide -->  Add/Subtract  * work recursively from left to right *
+        
+        //LOGIC GOAL
+        // 0  1  2  3  4     numAL
+        //     \ /
+        //   +  *  -  /  =    calcAL
+        // deleteCharAt(index1); deleteCharAt(index1+1); (calcAL should always?? end in 0 when entering this logic)
+        // 0  2  3  4     numAL
+        //        \ /
+        //   +  -  /  =    calcAL
+        // deleteCharAt(index2); deleteCharAt(index2+1); (calcAL should always?? end in 0 when entering this logic)
+        // 0  2  .75     numAL
+        //  \ /
+        //   +  -   =    calcAL
+        // deleteCharAt(index1); deleteCharAt(index1+1); (calcAL should always?? end in 0 when entering this logic)
+        // 2  .75     numAL
+        //  \ /
+        //   -   =    calcAL
+        // deleteCharAt(index2); deleteCharAt(index2+1); (calcAL should always?? end in 0 when entering this logic)
+        //  1.25
 
+ * PROBLEMS
+ **  each time number is calculated, numAL is reduced to nothing. 
+ *    -- need to preserve numbers input until either clear is pressed or a number is pressed after the enter button.
+ *    -- refactor to do math by passing around local array rather than instance ArrayList??
+ *    -- create local array for calcAL as well.
+ **  clear up the need for num1 and num2. What purpose do they have in this new version?
+ **  test the order of operation functions
+ *    -- divide by zero exception caught?
+ *    -- correct calculations?
+ *    -- able to retreive answer from ArrayList?
+ 
+        
  */
 package calculator;
 
@@ -24,13 +57,17 @@ import java.util.ArrayList;
  */
 public class Calculator extends javax.swing.JFrame {
 
-    private double num1, num2; //auto initialized at 0 
     private ArrayList<Double> numAL = new ArrayList<>(); //using arrayList so user can input as many values as they want
-    private boolean num2Set = false;
-    private int calculateKey;
+    private int index1, index2; // open scope needed
     private ArrayList<Integer> calcAL = new ArrayList<>();
-    private boolean resetCalculations;
     DecimalFormat df = new DecimalFormat("##.##");
+    
+    //old logic
+    private double num1, num2; //auto initialized at 0 
+    private boolean num2Set = false;
+    private int calculateKey;    
+    private boolean resetCalculations;
+    
    // private int calculateKey;
     /**
      * Creates new form calculator_frame
@@ -45,125 +82,153 @@ public class Calculator extends javax.swing.JFrame {
      * 3 --> *
      * 4 --> /
      */
-    private void compute(){//, double input){
-        
-        //preload for TESTING
-        numAL.add(0.0);
-        numAL.add(1.0);
-        numAL.add(2.0);
-        
-        calcAL.add(1);
-        calcAL.add(3);
-        calcAL.add(0);
-        // logic in multiplyDivide will set false when proven not found
-        boolean indexFound = true; 
-        do{
-            indexFound = multiplyDivide(indexFound);
-        }while(indexFound);
-        
+    private String compute() throws ArithmeticException{//, double input){
         // set boolean field for continue computing
         //   if operator is pressed after the equals button
         if(resetCalculations){
             num1 = num2; //save answer as num1
+            numAL.clear();    //
+            numAL.add(num2);
             num2Set = false; //set num2Set as false to avoid calculations
             resetCalculations = false; // flip boolean.
         }
-                
-        //avoid computing when user hasn't input two numbers        
-        if(num2Set){
-            switch(calculateKey){
-                case 0: //equal
-                    
-                case 1: // + 
-                    num2 = num1 + num2;
-                    break;
-                case 2: // -
-                    num2 = num1 - num2;
-                    break;
-                case 3: // *
-                    num2 = num1 * num2;
-                    break;
-                case 4: // /
-                    num2 = num1 / num2;
-                    break;
-                default: // =
-                    System.out.println("error in compute method");
-                    break;     
-            }
-        } else {
-            num2 = num1;
-            num2Set = true;
-        }
         
-        num1 = 0; //zero out to indicate clearing out textField is necessary
+        // save number entered
+        numAL.add(num1); 
+        //avoid computing when user hasn't input two numbers        
+        if(numAL.size()>1){
+            boolean indexFound = true; 
+            try{
+                // loop until there are no longer ** 3 or 4 ** values in calcAL    
+                do{
+                    // multiplyDivide() will search for indexes and return false to end loop
+                    indexFound = multiplyDivide(indexFound,3,4);
+                }while(indexFound);
+            } catch (ArithmeticException e){
+                return "ERROR";
+            }
+
+            // loop until there are no longer ** 1 or 2 ** values in calcAL
+            indexFound = true;
+            do{
+                // addSubtract() will search for indexes and return false to end loop
+                indexFound = multiplyDivide(indexFound,1,2);
+            }while(indexFound);
+        } 
+        
+        // "print" answer to screen 
+        return num2+""; //return answer in string form.
     }
-    
-    private boolean multiplyDivide(boolean indexFound){
-    
-
-        //Multiply/Divide -->  Add/Subtract  * work left to right *
-        //numArray  = [0,1,2];                        
-        //calcArray = [1,3,0];                       
-        int mIndex = calcAL.indexOf(3); // 
-        int dIndex = calcAL.indexOf(4); // 
-        //in order to use values in calculations, must be converted to Array
-        Double[] numCalc = numAL.toArray(new Double[numAL.size()]); 
-
-
-        //LOGIC GOAL
-        //0  1  2      numAL
-        //  +  *  =    calcAL
-        // deleteCharAt(mIndex); deleteCharAt(mIndex+1); (calcAL should always?? end in 0 when entering this logic)
-        //0  2 <replace with result of calculation   
-        // +  =
-        System.out.println(calcAL.toString());
+ 
+    private void SortnSaveIndex(int searchIndex){
+        // logic in multiplyDivide calls multiplication or division based off even or odd indexes
+        if(searchIndex % 2 == 1){ 
+            index1 = calcAL.indexOf(searchIndex); // multiply / addition
+        } else {
+            index2 = calcAL.indexOf(searchIndex); // subtraction / division   
+        }   
+    }
+    private boolean multiplyDivide(boolean indexFound, int searchIndex1, int searchIndex2) throws ArithmeticException{
+        // CREATE LOGIC TO THROW METHOD EXCEPTION 
+        // input indexes cannot be equal and should be in groups of 1&2 OR 3&4
+        
+        SortnSaveIndex(searchIndex1);
+        SortnSaveIndex(searchIndex2);
+        
         // it is possible for multiple occurances of index, loop through this logic until both indexes are -1
                 //One would have to remove the values already computed for that to work
-        if (mIndex != -1) {
-            //we know multiplication has been entered
-            if(dIndex != -1){
-                  //we know both multiplication and division has been entered
-                  if(mIndex < dIndex){ // which index occurs first?
-                    // we know multiplication was entered first, calculate it
-                    //  re-enter loop to search and computer again
+        if (index1 != -1) {
+            //we know odd has been entered
+            if(index2 != -1){
+                  //we know BOTH odd and even has been entered
+                  if(index1 < index2){ // which index occurs first?
+                    // we know odd was entered first, calculate it, then re-enter outside loop 
+                    addOrMultiply();
                   } else {
-                    //we know division was entered first, calculate it 
-                    //  re-enter loop to search and computer again
+                    //we know even was entered first, calculate it, then re-enter outside loop 
+                    subtractOrDivide();
                   }
               } else {
-                //we know ONLY multipliation has been entered, calculate it
-                System.out.println(numAL.toString());
-                multiplication(numAL, mIndex);
-                System.out.println(numAL.toString());
-                //  re-enter loop to search and computer again
+                //we know odd has been entered, calculate it, then re-enter outside loop 
+                addOrMultiply();
               }
         } else {
-            // we know multiplication has NOT been entered
-            if(dIndex != -1){
-              //  re-enter loop to search and computer again
-              // break loop
+            // we know odd has NOT been entered
+            if(index2 != -1){
+              //we know even was entered, calculate it, then re-enter outside loop 
+              subtractOrDivide();
             } else {
-              // neither multiplication nor division exist in calcAL
-              // break loop
+              // neither index input exist in calcAL, flag to end loop
               indexFound = false;
             }
         }
         return indexFound;
     }
+    
+    private void addOrMultiply(){
+        System.out.println(numAL.toString());
+        if(index1 == 3){
+            multiplication(numAL, index1);
+        } else {
+            if(index1 == 1){
+                addition(numAL, index1);
+            }
+        }                
+        System.out.println(numAL.toString());
+    }
+    
+    private void subtractOrDivide(){
+        System.out.println(numAL.toString());
+        if(index1 == 4){
+            division(numAL, index2);
+        } else {
+            if(index1 == 2){
+                subtraction(numAL, index2);
+            }
+        }                
+        System.out.println(numAL.toString());        
+    }
+    private void division(ArrayList<Double> numAL, int indx) throws ArithmeticException{ //pass reference
+         //in order to use values in calculations, ArrayList must be converted to Array
+        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
+        
+        numArr[indx] = numArr[indx] / numArr[indx+1];
+        calcAL.remove(new Integer(4));//removes first occurance in calc
+        numAL.remove(indx+1); //delete at index + 1
+        numAL.set(indx, numArr[indx]); //replace value in numAl with result 
 
-    private void multiplication(ArrayList<Double> numAL, int mIndex){ //pass reference
-        Double[] numCalc = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
-        numCalc[mIndex] = numCalc[mIndex] * numCalc[mIndex+1];
+    }
+    private void multiplication(ArrayList<Double> numAL, int indx){ //pass reference
+        //in order to use values in calculations, ArrayList must be converted to Array
+        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
+        
+        numArr[indx] = numArr[indx] * numArr[indx+1];
         calcAL.remove(new Integer(3));//removes first occurance in calc
-        numAL.remove(mIndex+1); //delete at index + 1
-        numAL.set(mIndex, numCalc[mIndex]); //replace value in numAl with result 
-        //return numCalc;  //not needed, ArrayList is mutable
+        numAL.remove(indx+1); //delete at index + 1
+        numAL.set(indx, numArr[indx]); //replace value in numAl with result         
+    }
+    private void subtraction(ArrayList<Double> numAL, int indx){ //pass reference
+        //in order to use values in calculations, ArrayList must be converted to Array
+        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
+        numArr[indx] = numArr[indx] - numArr[indx+1];
+        calcAL.remove(new Integer(3));//removes first occurance in calc
+        numAL.remove(indx+1); //delete at index + 1
+        numAL.set(indx, numArr[indx]); //replace value in numAl with result
+    }
+    private void addition(ArrayList<Double> numAL, int indx){ //pass reference
+        //in order to use values in calculations, ArrayList must be converted to Array
+        Double[] numArr = numAL.toArray(new Double[numAL.size()]);  //local varible used only for math
+        numArr[indx] = numArr[indx] + numArr[indx+1];
+        calcAL.remove(new Integer(3));//removes first occurance in calc
+        numAL.remove(indx+1); //delete at index + 1
+        numAL.set(indx, numArr[indx]); //replace value in numAl with result 
     }
 
-    private void division(){
-
-
-    }
+         
+////////////////////////////////////////////////////////////////////////////////
+// OLD LOGIC  --- OLD LOGIC -- OLD LOGIC -- OLD LOGIC  --- OLD LOGIC -- OLD LOGIC -- 
+////////////////////////////////////////////////////////////////////////////////
+  
 
     private void updateNum1(String input){
         // set boolean field for continue computing
@@ -478,6 +543,9 @@ public class Calculator extends javax.swing.JFrame {
 
     private void button5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button5ActionPerformed
         //DIVISION
+        calcAL.add(4);
+        
+        
         calculateKey = 4;
         compute();
         jTextField1.setText(df.format(num2)); // format out the decimals
@@ -485,29 +553,39 @@ public class Calculator extends javax.swing.JFrame {
 
     private void button9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button9ActionPerformed
         //MULTIPLICATION 
+        calcAL.add(3);
+        
         calculateKey = 3;
-        compute();
-        jTextField1.setText(df.format(num2)); //autobox to string format
+        
+        jTextField1.setText(df.format(compute())); //autobox to string format
     }//GEN-LAST:event_button9ActionPerformed
 
     private void button13ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button13ActionPerformed
         //SUBTRACTION
+        calcAL.add(2);
+        
+        
         calculateKey = 2;
-        compute();
-        jTextField1.setText(df.format(num2)); //autobox to string format
+        
+        jTextField1.setText(df.format(compute())); //autobox to string format
     }//GEN-LAST:event_button13ActionPerformed
 
     private void button17ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button17ActionPerformed
         //ADDITION
+        calcAL.add(1);
+        
+        
         calculateKey = 1;
-        compute();
-        jTextField1.setText(df.format(num2)); //autobox to string format
+
+        jTextField1.setText(df.format(compute())); //autobox to string format
     }//GEN-LAST:event_button17ActionPerformed
 
     private void button21ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button21ActionPerformed
         // EQUAL BUTTON
-        compute();
-        jTextField1.setText(df.format(num2)); //autobox to string format
+        calcAL.add(0);
+        
+        
+        jTextField1.setText(df.format(compute())); //autobox to string format
         resetCalculations = true;
         num2Set = false;
         // set boolean field for continue computing
