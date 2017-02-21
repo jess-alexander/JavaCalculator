@@ -16,19 +16,23 @@
        
  * PROBLEMS
  **  each time number is calculated, numAL is reduced to nothing. 
- *    -- need to preserve numbers input until either clear is pressed or a number is pressed after the enter button.
+ *    -x need to preserve numbers input until either clear is pressed or a number is pressed after the enter button.
  *    -x refactor to do math by passing around local array rather than instance ArrayList??
  *    -x create local array for calcAL as well.
  **  clear up the need for num1. What purpose do they have in this new version?
  **  test the order of operation functions
  *    -- divide by zero exception caught?
  *    -- correct calculations?
- *    -- able to retreive answer from ArrayList?
+ *    -x able to retreive answer from ArrayList?
  **  number added after operator (error)
+ *    -x elimiate calculations in-between the clicking of operands.
+ *    -- BONUS: refactor logic to allow calculations when + or - are pressed
+ *      --- identify when there are both multi/divide && add/subtract in calcAL
+ *      --- if both multi/divide && add/subtract are present, identify when add/subtract are the last operands in calcAL
  **  separate *update array* logic from compute() method
- *   -- saveInput method 
-        
+ *   -x saveInput method   
  */
+
 package calculator;
 
 import java.text.DecimalFormat;
@@ -46,7 +50,7 @@ public class Calculator extends javax.swing.JFrame {
         // after all testing is finished, re-configure code to make these indexes local. They are only used in two methods    
     private boolean numberSaved; // flag to know when it's safe/necessary to clear jTextField1
     private boolean resetCalculations; // flag to know when it's necessary to clear ArrayLists
-    private DecimalFormat df = new DecimalFormat("##.##");
+    private DecimalFormat df = new DecimalFormat("##.########");
     
     /**
      * Creates new form calculator_frame
@@ -61,18 +65,14 @@ public class Calculator extends javax.swing.JFrame {
      * 3 --> *
      * 4 --> /
      */
-    private void saveInput(String input){
 
-        numAL.add(Double.parseDouble(input));
-        numberSaved = false;
-
-    }
     private String compute() {//, double input){
         
         // set boolean field for continue computing
         //   if operator is pressed after the equals button
         if(resetCalculations){
-            numAL.clear();    
+            numAL.clear();  
+            calcAL.clear();
             resetCalculations = false; // flip boolean.
         }
         
@@ -86,12 +86,13 @@ public class Calculator extends javax.swing.JFrame {
         if(numAL.size()>1 ){
             
             try{
+                // loop inside this method until there are no longer ** 3 or 4 ** values in tempCalc
                 recursiveCalc(3,4, tempAL);
             } catch (ArithmeticException e){
                 return "ERROR";
             }
-                // loop inside until there are no longer ** 1 or 2 ** values in calcAL
-                recursiveCalc(1,2, tempAL);
+            // loop inside this method until there are no longer ** 1 or 2 ** values in tempCalc
+            recursiveCalc(1,2, tempAL);
         } 
         
         numberSaved = false; //set to false to indicate clearing out textField is necessary
@@ -101,20 +102,9 @@ public class Calculator extends javax.swing.JFrame {
         return df.format(tempAL.get(0)); //return answer in string form.
     }
  
-    private void SortnSaveIndex(int searchIndex, ArrayList<Integer> tempCalc){
-        // logic in recursiveCalc calls multiplication or division based off even or odd indexes
-        if(searchIndex % 2 == 1){ 
-            index1 = tempCalc.indexOf(searchIndex); // multiply / addition
-        } else {
-            index2 = tempCalc.indexOf(searchIndex); // subtraction / division   
-        }   
-    }
     private void recursiveCalc( int searchIndex1, int searchIndex2, ArrayList<Double> tempAL) throws ArithmeticException{
         // CREATE LOGIC TO THROW METHOD EXCEPTION 
         // input indexes cannot be equal and should be in groups of 1&2 OR 3&4
-                
-        // POSSIBLE LOGIC PROBLEM
-        // tempCalc can be reset with each call to rescursiveCalc 
         ArrayList<Integer> tempCalc = calcAL;
         SortnSaveIndex(searchIndex1, tempCalc);
         SortnSaveIndex(searchIndex2, tempCalc);
@@ -153,6 +143,15 @@ public class Calculator extends javax.swing.JFrame {
         
     }
     
+    private void SortnSaveIndex(int searchIndex, ArrayList<Integer> tempCalc){
+        // logic in recursiveCalc calls multiplication or division based off even or odd indexes
+        if(searchIndex % 2 == 1){ 
+            index1 = tempCalc.indexOf(searchIndex); // multiply / addition
+        } else {
+            index2 = tempCalc.indexOf(searchIndex); // subtraction / division   
+        }   
+    }
+    
     private void addOrMultiply(ArrayList<Double> tempAL, ArrayList<Integer> tempCalc, int searchIndex1){
         System.out.println("addOrMultiply");
         System.out.println("before: "+tempAL.toString());
@@ -183,17 +182,6 @@ public class Calculator extends javax.swing.JFrame {
         System.out.println("after: "+tempAL.toString());   
      //   return tempAL;
     }
-    private void division(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc) throws ArithmeticException{ //pass reference
-
-         //in order to use values in calculations, ArrayList must be converted to Array
-        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
-        numArr[indx] = numArr[indx] / numArr[indx+1];
-        
-        tempCalc.remove(new Integer(4));//removes first occurance in calc
-        tempAL.remove(indx+1); //delete at index + 1
-        tempAL.set(indx, numArr[indx]); //replace value in numAl with result 
-        
-    }
     private void multiplication(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
 
         //in order to use values in calculations, ArrayList must be converted to Array
@@ -204,17 +192,6 @@ public class Calculator extends javax.swing.JFrame {
         tempAL.remove(indx+1); //delete at index + 1
         tempAL.set(indx, numArr[indx]); //replace value in numAl with result         
 
-    }
-    private void subtraction(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
-
-        //in order to use values in calculations, ArrayList must be converted to Array
-        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
-        numArr[indx] = numArr[indx] - numArr[indx+1];
-        
-        tempCalc.remove(new Integer(2));//removes first occurance in calc
-        tempAL.remove(indx+1); //delete at index + 1
-        tempAL.set(indx, numArr[indx]); //replace value in numAl with result
-        
     }
     private void addition(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
         
@@ -227,9 +204,38 @@ public class Calculator extends javax.swing.JFrame {
         tempAL.set(indx, numArr[indx]); //replace value in numAl with result 
         
     }
+    private void division(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc) throws ArithmeticException{ //pass reference
+
+         //in order to use values in calculations, ArrayList must be converted to Array
+        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
+        if(numArr[indx+1] == 0){
+            throw new ArithmeticException();
+        }else{
+            numArr[indx] = numArr[indx] / numArr[indx+1];
+        }
+        
+        
+        tempCalc.remove(new Integer(4));//removes first occurance in calc
+        tempAL.remove(indx+1); //delete at index + 1
+        tempAL.set(indx, numArr[indx]); //replace value in numAl with result 
+        
+    }
+    private void subtraction(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
+
+        //in order to use values in calculations, ArrayList must be converted to Array
+        Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
+        numArr[indx] = numArr[indx] - numArr[indx+1];
+        
+        tempCalc.remove(new Integer(2));//removes first occurance in calc
+        tempAL.remove(indx+1); //delete at index + 1
+        tempAL.set(indx, numArr[indx]); //replace value in numAl with result
+        
+    }
+    
+    
  
 /**
- * concatInput removes leading zeros and concats values of buttons pressed into user display
+ * concatInput removes leading zeros and puts together the values of buttons pressed from the user display
  * @param String input, button clicked from user
  */
     private void concatInput(String input){
@@ -241,20 +247,29 @@ public class Calculator extends javax.swing.JFrame {
             jTextField1.setText(input);
             resetCalculations = false;
         }else{
-            if(!numberSaved){  
-                // replace textField with new input after calculations
-                jTextField1.setText(input);
-                numberSaved = true; // value has been replaced, set flag to true
-            } else{ 
-                // numberSaved is true,  conact rather than replace
+            if(numberSaved){  
+               // numberSaved is true,  conact rather than replace
                 // Don't allow leading zeros
                 if(jTextField1.getText().equals("0")){
                     jTextField1.setText(input);
                 } else {
                     jTextField1.setText(jTextField1.getText()+input);
                 }
+            } else{ 
+                 // replace textField with new input after calculations
+                jTextField1.setText(input);
+                numberSaved = true; // value has been replaced, set flag to true
             }        
         }        
+    }
+    
+    private String saveInput(String input){
+
+        numAL.add(Double.parseDouble(input));
+        numberSaved = false;
+        
+        return input;
+
     }
 
     /**
@@ -266,6 +281,7 @@ public class Calculator extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        button19 = new java.awt.Button();
         jTextField1 = new javax.swing.JTextField();
         button1 = new java.awt.Button();
         button3 = new java.awt.Button();
@@ -285,6 +301,15 @@ public class Calculator extends javax.swing.JFrame {
         button18 = new java.awt.Button();
         button20 = new java.awt.Button();
         button21 = new java.awt.Button();
+        button22 = new java.awt.Button();
+
+        button19.setBackground(new java.awt.Color(153, 153, 153));
+        button19.setLabel("÷");
+        button19.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                button19ActionPerformed(evt);
+            }
+        });
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Calculator");
@@ -303,9 +328,10 @@ public class Calculator extends javax.swing.JFrame {
             }
         });
 
+        button1.setActionCommand("C");
         button1.setBackground(new java.awt.Color(195, 8, 14));
-        button1.setFont(new java.awt.Font("Lucida Grande", 0, 12)); // NOI18N
-        button1.setLabel("CE");
+        button1.setFont(new java.awt.Font("Lucida Grande", 0, 10)); // NOI18N
+        button1.setLabel("C");
         button1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 button1ActionPerformed(evt);
@@ -313,7 +339,7 @@ public class Calculator extends javax.swing.JFrame {
         });
 
         button3.setBackground(new java.awt.Color(195, 8, 14));
-        button3.setFont(new java.awt.Font("Lucida Grande", 0, 12)); // NOI18N
+        button3.setFont(new java.awt.Font("Lucida Grande", 0, 10)); // NOI18N
         button3.setLabel("AC");
         button3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -322,7 +348,7 @@ public class Calculator extends javax.swing.JFrame {
         });
 
         button5.setBackground(new java.awt.Color(153, 153, 153));
-        button5.setLabel("/");
+        button5.setLabel("÷");
         button5.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 button5ActionPerformed(evt);
@@ -449,6 +475,15 @@ public class Calculator extends javax.swing.JFrame {
             }
         });
 
+        button22.setBackground(new java.awt.Color(153, 153, 153));
+        button22.setFont(new java.awt.Font("Lucida Grande", 0, 10)); // NOI18N
+        button22.setLabel("-/+");
+        button22.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                button22ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -463,24 +498,8 @@ public class Calculator extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(button11, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(button17, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(button6, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(button8, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(button7, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(button13, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 194, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(button3, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(button1, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(button5, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(button9, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
@@ -494,7 +513,27 @@ public class Calculator extends javax.swing.JFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(button15, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(button21, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(button21, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(button17, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(button6, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(button8, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(button7, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(button3, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(button1, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(button22, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(button9, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(button5, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addGap(0, 31, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -507,31 +546,31 @@ public class Calculator extends javax.swing.JFrame {
                     .addComponent(button5, javax.swing.GroupLayout.DEFAULT_SIZE, 35, Short.MAX_VALUE)
                     .addComponent(button1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(button3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(button9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(button22, javax.swing.GroupLayout.DEFAULT_SIZE, 35, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(button7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(button8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(button6, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(button13, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(button9, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(button11, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(button12, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(button10, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(button17, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(button13, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(button15, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(button16, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(button14, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(button20, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(button18, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addComponent(button21, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(button15, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(button16, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(button14, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(button17, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addComponent(button20, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(button18, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(button21, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(25, Short.MAX_VALUE))
         );
 
@@ -541,44 +580,55 @@ public class Calculator extends javax.swing.JFrame {
     private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jTextField1ActionPerformed
-
+ 
     private void button5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button5ActionPerformed
         //DIVISION
         calcAL.add(4);
-        saveInput(jTextField1.getText());
+        // when an operator is clicked, also push the value of jTextField1 into numAL
+        jTextField1.setText(saveInput(jTextField1.getText()));
+        // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
         
-//        jTextField1.setText(compute()); // format out the decimals
     }//GEN-LAST:event_button5ActionPerformed
 
     private void button9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button9ActionPerformed
         //MULTIPLICATION 
         calcAL.add(3);
-        saveInput(jTextField1.getText());
+        // when an operator is clicked, also push the value of jTextField1 into numAL
+        jTextField1.setText(saveInput(jTextField1.getText()));
+        // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
         
-//        jTextField1.setText(compute()); //autobox to string format
     }//GEN-LAST:event_button9ActionPerformed
 
     private void button13ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button13ActionPerformed
         //SUBTRACTION
         calcAL.add(2);
-        saveInput(jTextField1.getText());
+        // when an operator is clicked, also push the value of jTextField1 into numAL
+        jTextField1.setText(saveInput(jTextField1.getText()));
+        // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
        
-//        jTextField1.setText(compute()); //autobox to string format
     }//GEN-LAST:event_button13ActionPerformed
 
     private void button17ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button17ActionPerformed
         //ADDITION
         calcAL.add(1);
-        saveInput(jTextField1.getText());
-        
-//        jTextField1.setText(compute()); //autobox to string format
+        // when an operator is clicked, also push the value of jTextField1 into numAL
+        jTextField1.setText(saveInput(jTextField1.getText()));
+        // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
+
     }//GEN-LAST:event_button17ActionPerformed
 
     private void button21ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button21ActionPerformed
         // EQUAL BUTTON
         calcAL.add(0);
-        saveInput(jTextField1.getText());        
-        jTextField1.setText(compute()); //autobox to string format
+        saveInput(jTextField1.getText());
+        String response = compute();
+        
+        if(response.equals("ERROR")){
+            // do not allow further calculations, clear values now
+            numAL.clear();
+            calcAL.clear();
+        }
+        jTextField1.setText(response); //autobox to string format
 
         resetCalculations = true;
         // set boolean field for continue computing
@@ -586,77 +636,91 @@ public class Calculator extends javax.swing.JFrame {
         //   if operator is pressed next, continue computing
         
     }//GEN-LAST:event_button21ActionPerformed
-
+// 1
     private void button14ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button14ActionPerformed
         // TODO add your handling code here:
         concatInput("1");
     }//GEN-LAST:event_button14ActionPerformed
-
+// 2
     private void button16ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button16ActionPerformed
         // TODO add your handling code here:
         concatInput("2");
     }//GEN-LAST:event_button16ActionPerformed
-
+// 3
     private void button15ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button15ActionPerformed
         // TODO add your handling code here:
         concatInput("3");
     }//GEN-LAST:event_button15ActionPerformed
-
+// 4
     private void button10ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button10ActionPerformed
         // TODO add your handling code here:
         concatInput("4");
     }//GEN-LAST:event_button10ActionPerformed
-
+// 5
     private void button12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button12ActionPerformed
         // TODO add your handling code here:
         concatInput("5");
     }//GEN-LAST:event_button12ActionPerformed
-
+// 6
     private void button11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button11ActionPerformed
         // TODO add your handling code here:
         concatInput("6");
     }//GEN-LAST:event_button11ActionPerformed
-
+// 7
     private void button6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button6ActionPerformed
         // TODO add your handling code here:        
         concatInput("7");
     }//GEN-LAST:event_button6ActionPerformed
-
+// 8
     private void button8ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button8ActionPerformed
         // TODO add your handling code here:
         concatInput("8");
     }//GEN-LAST:event_button8ActionPerformed
-
+// 9
     private void button7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button7ActionPerformed
         // TODO add your handling code here:
         concatInput("9");
     }//GEN-LAST:event_button7ActionPerformed
-
+// 0
     private void button18ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button18ActionPerformed
         //add a zero to the string, only if the String is not equal to 0
         if(!jTextField1.getText().equals("0")) {
             concatInput("0");    
         }
     }//GEN-LAST:event_button18ActionPerformed
-
+// .
     private void button20ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button20ActionPerformed
         // TODO add your handling code here:
         jTextField1.setText(jTextField1.getText()+".");
     }//GEN-LAST:event_button20ActionPerformed
-
+// C
     private void button1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button1ActionPerformed
         // TODO add your handling code here:
         // clear last entry 
         jTextField1.setText("");
-        numberSaved = false;
+        numberSaved = false;//set flag to replace input with next button pressed
     }//GEN-LAST:event_button1ActionPerformed
-
+// AC
     private void button3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button3ActionPerformed
         // TODO add your handling code here:
         jTextField1.setText("");
-        numberSaved = false;
-        resetCalculations = false;
+        numberSaved = false; //set flag to replace input with next button pressed
+        resetCalculations = true; //set flag to clear numAL & calcAL
     }//GEN-LAST:event_button3ActionPerformed
+// UNUSED BUTTON - HOW CAN I REMOVE IT??
+    private void button19ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button19ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_button19ActionPerformed
+// +/-
+    private void button22ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button22ActionPerformed
+        // +/- button
+        // simply multiply input by -1 to change from positive to negative
+        // don't save the number just yet, let an operator button do that.
+        double temp = Double.parseDouble(jTextField1.getText());
+        temp *= -1;
+        jTextField1.setText(df.format(temp));  
+
+    }//GEN-LAST:event_button22ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -705,8 +769,10 @@ public class Calculator extends javax.swing.JFrame {
     private java.awt.Button button16;
     private java.awt.Button button17;
     private java.awt.Button button18;
+    private java.awt.Button button19;
     private java.awt.Button button20;
     private java.awt.Button button21;
+    private java.awt.Button button22;
     private java.awt.Button button3;
     private java.awt.Button button5;
     private java.awt.Button button6;
