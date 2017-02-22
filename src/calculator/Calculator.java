@@ -12,24 +12,16 @@
  *      -- if a number is pressed after equals reset both ArrayLists and start fresh
  *      -- if an operand is pressed after equals, continue adding to values already input
  *  -- have a boolean value to know when to reset number display vs when to keep concating numbers 
-       
+ *      
  * PROBLEMS
- **  each time number is calculated, numAL is reduced to nothing. 
- *    -x need to preserve numbers input until either clear is pressed or a number is pressed after the enter button.
- *    -x refactor to do math by passing around local array rather than instance ArrayList??
- *    -x create local array for calcAL as well.
- **  clear up the need for num1. What purpose do they have in this new version?
  **  test the order of operation functions
- *    -- divide by zero exception caught?
+ *    -x divide by zero exception caught?
  *    -- correct calculations?
- *    -x able to retreive answer from ArrayList?
  **  number added after operator (error)
- *    -x elimiate calculations in-between the clicking of operands.
+ *    -x elimiate calculations in-between the clicking of operands. (only calculate after equals is pressed)
  *    -- BONUS: refactor logic to allow calculations when + or - are pressed
  *      --- identify when there are both multi/divide && add/subtract in calcAL
  *      --- if both multi/divide && add/subtract are present, identify when add/subtract are the last operands in calcAL
- **  separate *update array* logic from compute() method
- *   -x saveInput method   
  */
 
 package calculator;
@@ -43,13 +35,14 @@ import java.util.ArrayList;
  */
 public class Calculator extends javax.swing.JFrame {
 
-    private ArrayList<Integer> calcAL = new ArrayList<>();
-    private ArrayList<Double> numAL = new ArrayList<>(); //using arrayList so user can input as many values as they want
+    //using arrayList so user can input as many values as they want
+    private final ArrayList<Short> calcAL = new ArrayList<>(); //reference never changes so final is allowed. :) 
+    private final ArrayList<Double> numAL = new ArrayList<>(); 
     private int index1, index2; // open scope needed because you can't return two values at once. 
         // after all testing is finished, re-configure code to make these indexes local. They are only used in two methods    
     private boolean numberSaved; // flag to know when it's safe/necessary to clear jTextField1
     private boolean resetCalculations; // flag to know when it's necessary to clear ArrayLists
-    private DecimalFormat df = new DecimalFormat("##.########");
+    private final DecimalFormat df = new DecimalFormat("##.########");
     
     /**
      * Creates new form calculator_frame
@@ -58,7 +51,7 @@ public class Calculator extends javax.swing.JFrame {
         initComponents();
     }
     /**
-     * The calculateKey integer will relate to a math operator.
+     * The calculateKey short will relate to a math operator.
      * 1 --> +
      * 2 --> -
      * 3 --> *
@@ -86,12 +79,12 @@ public class Calculator extends javax.swing.JFrame {
             
             try{
                 // loop inside this method until there are no longer ** 3 or 4 ** values in tempCalc
-                recursiveCalc(3,4, tempAL);
+                recursiveCalc((short)3,(short)4, tempAL);
             } catch (ArithmeticException e){
                 return "ERROR";
             }
             // loop inside this method until there are no longer ** 1 or 2 ** values in tempCalc
-            recursiveCalc(1,2, tempAL);
+            recursiveCalc((short)1,(short)2, tempAL);
         } 
         
         numberSaved = false; //set to false to indicate clearing out textField is necessary
@@ -101,10 +94,10 @@ public class Calculator extends javax.swing.JFrame {
         return df.format(tempAL.get(0)); //return answer in string form.
     }
  
-    private void recursiveCalc( int searchIndex1, int searchIndex2, ArrayList<Double> tempAL) throws ArithmeticException{
+    private void recursiveCalc( short searchIndex1, short searchIndex2, ArrayList<Double> tempAL) throws ArithmeticException{
         // CREATE LOGIC TO THROW METHOD EXCEPTION 
         // input indexes cannot be equal and should be in groups of 1&2 OR 3&4
-        ArrayList<Integer> tempCalc = calcAL;
+        ArrayList<Short> tempCalc = calcAL;
         SortnSaveIndex(searchIndex1, tempCalc);
         SortnSaveIndex(searchIndex2, tempCalc);
         boolean indexFound = true;
@@ -135,14 +128,14 @@ public class Calculator extends javax.swing.JFrame {
                   indexFound = false;
                 }
             }
-            // search for additional operators
+            // search for additional operators after additional calculations have been made.
             SortnSaveIndex(searchIndex1, tempCalc);
             SortnSaveIndex(searchIndex2, tempCalc);
         } while(indexFound);
         
     }
     
-    private void SortnSaveIndex(int searchIndex, ArrayList<Integer> tempCalc){
+    private void SortnSaveIndex(short searchIndex, ArrayList<Short> tempCalc){
         // logic in recursiveCalc calls multiplication or division based off even or odd indexes
         if(searchIndex % 2 == 1){ 
             index1 = tempCalc.indexOf(searchIndex); // multiply / addition
@@ -151,7 +144,7 @@ public class Calculator extends javax.swing.JFrame {
         }   
     }
     
-    private void addOrMultiply(ArrayList<Double> tempAL, ArrayList<Integer> tempCalc, int searchIndex1){
+    private void addOrMultiply(ArrayList<Double> tempAL, ArrayList<Short> tempCalc, short searchIndex1){
         System.out.println("addOrMultiply");
         System.out.println("before: "+tempAL.toString());
         //ArrayList<Double> tempAL = new ArrayList<>();
@@ -167,7 +160,7 @@ public class Calculator extends javax.swing.JFrame {
         
         //return tempAL;
     }
-    private void subtractOrDivide(ArrayList<Double> tempAL, ArrayList<Integer> tempCalc, int searchIndex2){
+    private void subtractOrDivide(ArrayList<Double> tempAL, ArrayList<Short> tempCalc, short searchIndex2){
         System.out.println("subtractOrDivide");
         System.out.println("before: "+tempAL.toString());
 
@@ -181,7 +174,7 @@ public class Calculator extends javax.swing.JFrame {
         System.out.println("after: "+tempAL.toString());   
      //   return tempAL;
     }
-    private void multiplication(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
+    private void multiplication(int indx, ArrayList<Double> tempAL, ArrayList<Short> tempCalc){ //pass reference
 
         //in order to use values in calculations, ArrayList must be converted to Array
         Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
@@ -192,7 +185,7 @@ public class Calculator extends javax.swing.JFrame {
         tempAL.set(indx, numArr[indx]); //replace value in numAl with result         
 
     }
-    private void addition(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
+    private void addition(int indx, ArrayList<Double> tempAL, ArrayList<Short> tempCalc){ //pass reference
         
         //in order to use values in calculations, ArrayList must be converted to Array
         Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
@@ -203,7 +196,7 @@ public class Calculator extends javax.swing.JFrame {
         tempAL.set(indx, numArr[indx]); //replace value in numAl with result 
         
     }
-    private void division(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc) throws ArithmeticException{ //pass reference
+    private void division(int indx, ArrayList<Double> tempAL, ArrayList<Short> tempCalc) throws ArithmeticException{ //pass reference
 
          //in order to use values in calculations, ArrayList must be converted to Array
         Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
@@ -219,7 +212,7 @@ public class Calculator extends javax.swing.JFrame {
         tempAL.set(indx, numArr[indx]); //replace value in numAl with result 
         
     }
-    private void subtraction(int indx, ArrayList<Double> tempAL, ArrayList<Integer> tempCalc){ //pass reference
+    private void subtraction(int indx, ArrayList<Double> tempAL, ArrayList<Short> tempCalc){ //pass reference
 
         //in order to use values in calculations, ArrayList must be converted to Array
         Double[] numArr = tempAL.toArray(new Double[tempAL.size()]);  //local varible used only for math
@@ -497,24 +490,21 @@ public class Calculator extends javax.swing.JFrame {
                                     .addComponent(button5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                     .addComponent(button2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))))
                         .addGap(3, 3, 3)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(buttonPositiveNegative, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(button9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(button6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(button3, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(3, 3, 3)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(buttonDivision, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(buttonMultiplication, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(buttonSubtraction, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(buttonAddition, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
-                                .addComponent(buttonPeriod, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(2, 2, 2)
-                                .addComponent(buttonEquals, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                .addContainerGap(515, Short.MAX_VALUE))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(buttonPositiveNegative, javax.swing.GroupLayout.DEFAULT_SIZE, 45, Short.MAX_VALUE)
+                            .addComponent(button9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(button6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(button3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(buttonPeriod, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(3, 3, 3)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(buttonDivision, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(buttonMultiplication, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(buttonSubtraction, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(buttonAddition, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(buttonEquals, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -551,14 +541,14 @@ public class Calculator extends javax.swing.JFrame {
                         .addComponent(buttonPeriod, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(button0, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(buttonEquals, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10))
+                .addContainerGap(20, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
  
     private void buttonDivisionPressed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonDivisionPressed
-        calcAL.add(4);
+        calcAL.add((short)4);
         // when an operator is clicked, also push the value of jTextField1 into numAL
         numberDisplay.setText(saveInput(numberDisplay.getText()));
         // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
@@ -566,7 +556,7 @@ public class Calculator extends javax.swing.JFrame {
     }//GEN-LAST:event_buttonDivisionPressed
 
     private void buttonMultiplicationPressed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonMultiplicationPressed
-        calcAL.add(3);
+        calcAL.add((short)3);
         // when an operator is clicked, also push the value of jTextField1 into numAL
         numberDisplay.setText(saveInput(numberDisplay.getText()));
         // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
@@ -574,7 +564,7 @@ public class Calculator extends javax.swing.JFrame {
     }//GEN-LAST:event_buttonMultiplicationPressed
 
     private void buttonSubtractionPressed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonSubtractionPressed
-        calcAL.add(2);
+        calcAL.add((short)2);
         // when an operator is clicked, also push the value of jTextField1 into numAL
         numberDisplay.setText(saveInput(numberDisplay.getText()));
         // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
@@ -582,7 +572,7 @@ public class Calculator extends javax.swing.JFrame {
     }//GEN-LAST:event_buttonSubtractionPressed
 
     private void buttonAdditionPressed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonAdditionPressed
-        calcAL.add(1);
+        calcAL.add((short)1);
         // when an operator is clicked, also push the value of jTextField1 into numAL
         numberDisplay.setText(saveInput(numberDisplay.getText()));
         // having this logic here prevents adding multiple operators without having numerals to execute the operand on. 
@@ -590,7 +580,7 @@ public class Calculator extends javax.swing.JFrame {
     }//GEN-LAST:event_buttonAdditionPressed
 
     private void buttonEqualsPressed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buttonEqualsPressed
-        calcAL.add(0);
+        calcAL.add((short)0);
         saveInput(numberDisplay.getText());
         String response = compute();
         
